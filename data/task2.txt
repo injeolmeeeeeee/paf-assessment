@@ -1,1 +1,71 @@
 Write your Task 2 answers in this file
+mongoimport --db bedandbreakfast --collection listings_and_reviews --type json --file data/listings.json
+
+To create "listings" collection:
+
+db.listings_and_reviews.aggregate([
+  {
+    $match: {
+      "address.country": {
+        $regex: "australia", $options: "i"
+      }
+    }
+  },
+  {
+    $out: "listings"
+  }
+]);
+
+To extract into "reviews"
+db.listings.aggregate([
+  {
+    $project: {
+      _id: 0,
+      reviews: {
+        $map: {
+          input: "$reviews",
+          as: "review",
+          in: {
+            review_id: "$$review._id",
+            date: "$$review.date",
+            listing_id: "$$review.listing_id",            
+            reviewer_name: {
+              $replaceAll: {
+                input: "$$review.reviewer_name",
+                find: ",",
+                replacement: ""
+              }
+            },
+            comments: {
+              $replaceAll: {
+                input: {
+                  $replaceAll: {
+                    input: "$$review.comments",
+                    find: "\n",
+                    replacement: ""
+                  }
+                },
+                find: "\r",
+                replacement: ""
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    $unwind: "$reviews"
+  },
+  {
+    $out: "reviews"
+  }
+])
+
+Remove reviews from listings collection
+db.listings.updateMany({},{
+    $unset: {reviews: ""}
+})
+
+Command to export reviews
+mongoexport --db bedandbreakfast --collection reviews --type=csv --fields reviews.date,reviews.listing_id,reviews.reviewer_name,reviews.comments --out data/reviews.csv

@@ -12,7 +12,7 @@ import vttp2023.batch4.paf.assessment.models.User;
 
 @Repository
 public class BookingsRepository {
-	
+
 	// You may add additional dependency injections
 
 	public static final String SQL_SELECT_USER_BY_EMAIL = "select * from users where email like %";
@@ -33,11 +33,13 @@ public class BookingsRepository {
 	// IMPORTANT: DO NOT MODIFY THE SIGNATURE OF THIS METHOD.
 	// You may only add throw exceptions to this method
 	public void newUser(User user) {
+		template.update(Queries.SQL_SAVE_USER, user.email(), user.name());
 	}
 
 	// TODO: Task 6
 	// IMPORTANT: DO NOT MODIFY THE SIGNATURE OF THIS METHOD.
 	// You may only add throw exceptions to this method
 	public void newBookings(Bookings bookings) {
+		template.update(Queries.SQL_SAVE_BOOKING, bookings.getBookingId(), bookings.getListingId(), bookings.getDuration(), bookings.getEmail());
 	}
 }

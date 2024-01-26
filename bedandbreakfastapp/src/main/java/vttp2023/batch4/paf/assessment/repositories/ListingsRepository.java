@@ -5,7 +5,14 @@ import java.util.Optional;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
+import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
@@ -21,27 +28,78 @@ public class ListingsRepository {
 
 	@Autowired
 	private MongoTemplate template;
+	
 
 	/*
-	 * Write the native MongoDB query that you will be using for this method
-	 * inside this comment block
-	 * eg. db.bffs.find({ name: 'fred }) 
-	 *
-	 *
+	db.listings.aggregate([
+    {
+        $match: {
+            "address.suburb": {
+                $nin: ["", null]
+            }
+        }
+    },
+    {
+        $project: {
+            _id: "$address.suburb"
+        }
+    }
+])
 	 */
 	public List<String> getSuburbs(String country) {
-		return null;
+		MatchOperation matchOperation = Aggregation.match(Criteria.where("address.suburb").nin("", null));
+		ProjectionOperation projectionOperation = Aggregation.project("_id","address.suburb");
+		Aggregation pipeline = Aggregation.newAggregation(matchOperation, projectionOperation);
+		AggregationResults<String> results = template.aggregate(pipeline, "listings", String.class);
+	
+		return results.getMappedResults();
 	}
 
 	/*
-	 * Write the native MongoDB query that you will be using for this method
-	 * inside this comment block
-	 * eg. db.bffs.find({ name: 'fred }) 
-	 *
-	 *
+	 db.listings.aggregate([
+    {
+        $match: {
+            "address.suburb": { $regex: suburb, $options: "i" },
+            "accommodates": { $gte: persons },
+            "min_nights": { $lte: duration },
+            "max_nights": { $gte: duration },
+            "price": { $lte: priceRange, $gte: priceRange }
+        }
+    },
+    {
+        $project: {
+            "_id": 1,
+            "name": "$name",
+            "accommodates": "$accommodates",
+            "price": "$price"
+        }
+    },
+    {
+        $sort: { "price": -1 }
+    }
+])
 	 */
+
+	 
 	public List<AccommodationSummary> findListings(String suburb, int persons, int duration, float priceRange) {
-		return null;
+		// Document doc = null;
+		// doc.get(”price”, Number.class).floatValue()
+		MatchOperation matchOperation = Aggregation.match(Criteria.where
+														("address.suburb").regex(suburb, "i")
+														.and("accommodates").gte(persons)
+														.and("min_nights").lte(duration)
+														.and("max_nights").gte(duration)
+														.and("price").lte(priceRange).gte(priceRange));
+		ProjectionOperation projectionOperation = Aggregation.project("_id")
+														.and("$name").as("name")
+														.and("$accommodates").as("accommodates")		
+														.and("$price").as("price");											
+		SortOperation sortOperation = Aggregation.sort(Sort.by(Direction.DESC, "price"));
+		
+		Aggregation pipeline = Aggregation.newAggregation(matchOperation, projectionOperation, sortOperation);
+		AggregationResults<AccommodationSummary> results = template.aggregate(pipeline, "listings", AccommodationSummary.class);
+
+		return results.getMappedResults();
 	}
 
 	// IMPORTANT: DO NOT MODIFY THIS METHOD UNLESS REQUESTED TO DO SO
