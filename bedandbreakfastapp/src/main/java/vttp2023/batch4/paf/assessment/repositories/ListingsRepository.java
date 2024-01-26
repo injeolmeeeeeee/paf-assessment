@@ -2,6 +2,7 @@ package vttp2023.batch4.paf.assessment.repositories;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +49,7 @@ public class ListingsRepository {
 	 */
 	public List<String> getSuburbs(String country) {
 		MatchOperation matchOperation = Aggregation.match(Criteria.where("address.suburb").nin("", null));
-		ProjectionOperation projectionOperation = Aggregation.project("_id","address.suburb");
+		ProjectionOperation projectionOperation = Aggregation.project("_id", "address.suburb");
 		Aggregation pipeline = Aggregation.newAggregation(matchOperation, projectionOperation);
 		AggregationResults<String> results = template.aggregate(pipeline, "listings", String.class);
 	
@@ -85,7 +86,7 @@ public class ListingsRepository {
 		// Document doc = null;
 		// doc.get(”price”, Number.class).floatValue()
 		MatchOperation matchOperation = Aggregation.match(Criteria.where
-														("address.suburb").regex(suburb, "i")
+														("address.suburb").regex(Pattern.quote(suburb), "i")
 														.and("accommodates").gte(persons)
 														.and("min_nights").lte(duration)
 														.and("max_nights").gte(duration)
